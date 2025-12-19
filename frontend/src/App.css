@@ -63,7 +63,7 @@ button.primary {
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 button.primary:hover:not(:disabled) {
@@ -82,7 +82,6 @@ button.primary:disabled {
   margin-top: 18px;
   margin-bottom: 12px;
   display: grid;
-  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -107,19 +106,32 @@ button.primary:disabled {
   font-family: monospace;
 }
 
+/* ⛽ Gas Preview */
+.gas {
+  margin-top: 12px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #86efac;
+  text-align: center;
+}
+
 /* ℹ️ Status Messages */
 .status {
   margin-top: 14px;
   text-align: center;
   font-size: 0.85rem;
-  color: #c7d2fe;
-  background: rgba(79, 70, 229, 0.15);
   padding: 10px 12px;
   border-radius: 10px;
+  background: rgba(79, 70, 229, 0.15);
+  color: #c7d2fe;
 }
 
-/* ⏱️ Cooldown Highlight */
-.status:has(⏱️) {
+/* ⏱️ Cooldown Message */
+.status.cooldown {
+  background: rgba(251, 191, 36, 0.15);
   color: #fbbf24;
 }
 
