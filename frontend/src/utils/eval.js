@@ -4,11 +4,12 @@ import {
   getBalance,
   canClaim,
   getRemainingAllowance,
+  getLastClaimAt,   // ✅ ADD THIS
   getContractAddresses,
 } from "./contracts";
 
 export function exposeEval() {
-  if (window.__EVAL__) return; // prevent double init
+  if (window.__EVAL__) return;
 
   window.__EVAL__ = {
     connectWallet,
@@ -16,6 +17,7 @@ export function exposeEval() {
     getBalance,
     canClaim,
     getRemainingAllowance,
+    getLastClaimAt, // ✅ EXPOSE IT
     getContractAddresses,
   };
 

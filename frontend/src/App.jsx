@@ -9,7 +9,7 @@ import {
 import { exposeEval } from "./utils/eval";
 import "./App.css";
 
-const COOLDOWN_SECONDS = 3600; // must match faucet contract
+const COOLDOWN_SECONDS = 3600;
 
 function App() {
   const [wallet, setWallet] = useState(null);
@@ -18,24 +18,16 @@ function App() {
   const [canRequest, setCanRequest] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
-
-  // cooldown
   const [cooldown, setCooldown] = useState(0);
 
-  // 🔥 gas preview
-  const [gasEstimate, setGasEstimate] = useState(null);
+  // ⛽ gas preview
   const [gasCost, setGasCost] = useState(null);
 
-  /* -------------------------------------------------- */
-  /* expose eval helpers                                */
-  /* -------------------------------------------------- */
   useEffect(() => {
     exposeEval();
   }, []);
 
-  /* -------------------------------------------------- */
-  /* cooldown countdown                                 */
-  /* -------------------------------------------------- */
+  /* ⏱️ cooldown timer */
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setInterval(() => {
@@ -44,9 +36,7 @@ function App() {
     return () => clearInterval(t);
   }, [cooldown]);
 
-  /* -------------------------------------------------- */
-  /* connect wallet                                     */
-  /* -------------------------------------------------- */
+  /* 🔐 connect wallet */
   async function connect() {
     try {
       const addr = await connectWallet();
@@ -58,9 +48,7 @@ function App() {
     }
   }
 
-  /* -------------------------------------------------- */
-  /* refresh on-chain data                              */
-  /* -------------------------------------------------- */
+  /* 🔄 refresh on-chain data */
   async function refresh(address) {
     try {
       const bal = await getBalance(address);
@@ -80,71 +68,48 @@ function App() {
       }
 
       await estimateGas();
-    } catch (err) {
-      console.error(err);
-      setStatus("⚠️ Please switch MetaMask to Sepolia");
-      setCanRequest(false);
+    } catch {
+      setStatus("⚠️ Switch MetaMask to Sepolia");
     }
   }
 
-  /* -------------------------------------------------- */
-  /* 🔥 gas estimate preview                            */
-  /* -------------------------------------------------- */
+  /* ⛽ gas estimate (safe) */
   async function estimateGas() {
-    if (!wallet || !canRequest) {
-      setGasEstimate(null);
-      setGasCost(null);
-      return;
-    }
-
     try {
-      const gas = await window.__EVAL__.requestTokens.estimateGas();
       const gasPrice = await window.ethereum.request({
         method: "eth_gasPrice",
       });
 
-      const costEth =
-        (Number(gas) * Number(gasPrice)) / 1e18;
+      // avg requestTokens gas ~100k
+      const estimatedEth =
+        (100_000 * Number(gasPrice)) / 1e18;
 
-      setGasEstimate(gas.toString());
-      setGasCost(costEth.toFixed(6));
+      setGasCost(estimatedEth.toFixed(6));
     } catch {
-      setGasEstimate(null);
       setGasCost(null);
     }
   }
 
-  /* -------------------------------------------------- */
-  /* claim tokens                                       */
-  /* -------------------------------------------------- */
+  /* 💧 claim tokens */
   async function claim() {
     try {
       setLoading(true);
       setStatus("⏳ Requesting tokens...");
       await requestTokens();
-      setStatus("✅ Tokens claimed successfully!");
+      setStatus("✅ Tokens claimed!");
       await refresh(wallet);
-    } catch (err) {
-      if (err.message?.toLowerCase().includes("cooldown")) {
-        setStatus("⏱️ Cooldown active. Try again later.");
-      } else {
-        setStatus("❌ Transaction failed");
-      }
+    } catch {
+      setStatus("⏱️ Cooldown active. Try later.");
     } finally {
       setLoading(false);
     }
   }
 
-  /* -------------------------------------------------- */
-  /* UI                                                 */
-  /* -------------------------------------------------- */
   return (
     <div className="container">
       <div className="card">
         <h1>ERC20 Token Faucet</h1>
-        <p className="subtitle">
-          Secure • Rate-Limited • Sepolia Testnet
-        </p>
+        <p className="subtitle">Secure • Rate-Limited • Sepolia Testnet</p>
 
         {!wallet ? (
           <button className="primary" onClick={connect}>
@@ -155,8 +120,11 @@ function App() {
             <div className="info">
               <div>
                 <span>Wallet</span>
-                <strong>
-                  {wallet.slice(0, 6)}…{wallet.slice(-4)}
+                <strong
+                  onClick={() => navigator.clipboard.writeText(wallet)}
+                  style={{ cursor: "pointer" }}
+                >
+                  {wallet.slice(0, 6)}…{wallet.slice(-4)} 📋
                 </strong>
               </div>
 
@@ -166,15 +134,14 @@ function App() {
               </div>
 
               <div>
-                <span>Remaining Allowance</span>
+                <span>Remaining</span>
                 <strong>{remaining}</strong>
               </div>
             </div>
 
-            {gasEstimate && (
+            {gasCost && (
               <div className="gas">
-                ⛽ Gas: <strong>{gasEstimate}</strong> units <br />
-                💰 Cost: <strong>{gasCost} ETH</strong>
+                ⛽ Estimated cost: <strong>{gasCost} ETH</strong>
               </div>
             )}
 
