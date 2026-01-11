@@ -1,14 +1,10 @@
 import { ethers } from "ethers";
 
-/* -------------------------------------------------- */
-/* ENV ADDRESSES                                      */
-/* -------------------------------------------------- */
+
 const TOKEN_ADDRESS = import.meta.env.VITE_TOKEN_ADDRESS;
 const FAUCET_ADDRESS = import.meta.env.VITE_FAUCET_ADDRESS;
 
-/* -------------------------------------------------- */
-/* ABIs (minimal but COMPLETE)                        */
-/* -------------------------------------------------- */
+
 const tokenAbi = [
   "function balanceOf(address) view returns (uint256)",
 ];
@@ -17,12 +13,9 @@ const faucetAbi = [
   "function requestTokens()",
   "function canClaim(address) view returns (bool)",
   "function remainingAllowance(address) view returns (uint256)",
-  "function lastClaimAt(address) view returns (uint256)", // ✅ REQUIRED
+  "function lastClaimAt(address) view returns (uint256)",
 ];
 
-/* -------------------------------------------------- */
-/* PROVIDER / SIGNER                                  */
-/* -------------------------------------------------- */
 let provider;
 let signer;
 
@@ -33,9 +26,6 @@ function getProvider() {
   return provider;
 }
 
-/* -------------------------------------------------- */
-/* WALLET                                             */
-/* -------------------------------------------------- */
 export async function connectWallet() {
   if (!window.ethereum) {
     throw new Error("MetaMask not installed");
@@ -51,9 +41,7 @@ export async function connectWallet() {
   return accounts[0];
 }
 
-/* -------------------------------------------------- */
-/* CONTRACT HELPERS                                   */
-/* -------------------------------------------------- */
+
 function getTokenContract() {
   if (!TOKEN_ADDRESS) throw new Error("Token address not set");
   return new ethers.Contract(TOKEN_ADDRESS, tokenAbi, getProvider());
@@ -65,14 +53,11 @@ function getFaucetContract(withSigner = false) {
   return new ethers.Contract(FAUCET_ADDRESS, faucetAbi, p);
 }
 
-/* 👉 THIS IS WHAT YOUR APP EXPECTS */
+
 export async function getContract() {
   return getFaucetContract(true);
 }
 
-/* -------------------------------------------------- */
-/* FAUCET ACTIONS                                     */
-/* -------------------------------------------------- */
 export async function requestTokens() {
   if (!signer) throw new Error("Wallet not connected");
 
@@ -82,9 +67,6 @@ export async function requestTokens() {
   return tx.hash;
 }
 
-/* -------------------------------------------------- */
-/* READ METHODS                                       */
-/* -------------------------------------------------- */
 export async function getBalance(address) {
   const balance = await getTokenContract().balanceOf(address);
   return balance.toString();
@@ -101,7 +83,8 @@ export async function getRemainingAllowance(address) {
 
 export async function getLastClaimAt(address) {
   const faucet = getFaucetContract();
-  return await faucet.lastClaimAt(address);
+  const timestamp = await faucet.lastClaimAt(address);
+  return timestamp.toString();
 }
 
 export async function getContractAddresses() {

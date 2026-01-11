@@ -1,14 +1,9 @@
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "./Token.sol";
 
-/**
- * @title TokenFaucet
- * @dev Rate-limited ERC-20 faucet with cooldown & lifetime limits
- */
 contract TokenFaucet {
-    FaucetToken public immutable token;
+    FaucetToken public token;
 
     uint256 public constant FAUCET_AMOUNT = 100 * 1e18;
     uint256 public constant COOLDOWN_TIME = 1 days;
@@ -20,66 +15,78 @@ contract TokenFaucet {
     mapping(address => uint256) public lastClaimAt;
     mapping(address => uint256) public totalClaimed;
 
-    event TokensClaimed(address indexed user, uint256 amount, uint256 timestamp);
+    event TokensClaimed(
+        address indexed user,
+        uint256 amount,
+        uint256 timestamp
+    );
     event FaucetPaused(bool paused);
 
     constructor(address tokenAddress) {
-        require(tokenAddress != address(0), "Invalid token address");
-        token = FaucetToken(tokenAddress);
         admin = msg.sender;
+        if (tokenAddress != address(0)) {
+            token = FaucetToken(tokenAddress);
+        }
     }
 
-    /**
-     * @dev Claim tokens from the faucet
-     */
+    function setToken(address tokenAddress) external {
+        require(msg.sender == admin, "Only admin");
+        require(tokenAddress != address(0), "Invalid token address");
+        require(address(token) == address(0), "Token already set");
+        token = FaucetToken(tokenAddress);
+    }
+
     function requestTokens() external {
         require(!paused, "Faucet is paused");
-        require(canClaim(msg.sender), "Cooldown active or limit reached");
+        require(address(token) != address(0), "Token not configured");
+
+        uint256 lastClaim = lastClaimAt[msg.sender];
+        uint256 claimed = totalClaimed[msg.sender];
+
+        if (lastClaim != 0) {
+            require(
+                block.timestamp >= lastClaim + COOLDOWN_TIME,
+                "Cooldown period not elapsed"
+            );
+        }
+
         require(
-            totalClaimed[msg.sender] + FAUCET_AMOUNT <= MAX_CLAIM_AMOUNT,
-            "Lifetime limit exceeded"
+            claimed + FAUCET_AMOUNT <= MAX_CLAIM_AMOUNT,
+            "Lifetime claim limit reached"
         );
 
-        // Effects
         lastClaimAt[msg.sender] = block.timestamp;
-        totalClaimed[msg.sender] += FAUCET_AMOUNT;
+        totalClaimed[msg.sender] = claimed + FAUCET_AMOUNT;
 
-        // Interaction
         token.mint(msg.sender, FAUCET_AMOUNT);
 
         emit TokensClaimed(msg.sender, FAUCET_AMOUNT, block.timestamp);
     }
 
-    /**
-     * @dev Check if user can currently claim
-     */
     function canClaim(address user) public view returns (bool) {
         if (paused) return false;
-        if (block.timestamp < lastClaimAt[user] + COOLDOWN_TIME) return false;
+        if (address(token) == address(0)) return false;
         if (totalClaimed[user] >= MAX_CLAIM_AMOUNT) return false;
+        if (
+            lastClaimAt[user] != 0 &&
+            block.timestamp < lastClaimAt[user] + COOLDOWN_TIME
+        ) {
+            return false;
+        }
         return true;
     }
 
-    /**
-     * @dev Remaining lifetime allowance
-     */
     function remainingAllowance(address user) external view returns (uint256) {
         if (totalClaimed[user] >= MAX_CLAIM_AMOUNT) return 0;
         return MAX_CLAIM_AMOUNT - totalClaimed[user];
     }
 
-    /**
-     * @dev Pause or unpause faucet (admin only)
-     */
     function setPaused(bool _paused) external {
         require(msg.sender == admin, "Only admin");
         paused = _paused;
         emit FaucetPaused(_paused);
     }
 
-    /**
-     * @dev Check pause state
-     */
     function isPaused() external view returns (bool) {
         return paused;
     }

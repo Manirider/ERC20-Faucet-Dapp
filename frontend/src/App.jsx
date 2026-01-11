@@ -9,7 +9,7 @@ import {
 import { exposeEval } from "./utils/eval";
 import "./App.css";
 
-const COOLDOWN_SECONDS = 3600;
+const COOLDOWN_SECONDS = 86400;
 
 function App() {
   const [wallet, setWallet] = useState(null);
@@ -19,15 +19,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [cooldown, setCooldown] = useState(0);
-
-  // ⛽ gas preview
   const [gasCost, setGasCost] = useState(null);
 
   useEffect(() => {
     exposeEval();
   }, []);
 
-  /* ⏱️ cooldown timer */
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setInterval(() => {
@@ -36,112 +33,138 @@ function App() {
     return () => clearInterval(t);
   }, [cooldown]);
 
-  /* 🔐 connect wallet */
   async function connect() {
     try {
+      setLoading(true);
+      setStatus("🔐 Connecting wallet...");
       const addr = await connectWallet();
       setWallet(addr);
-      setStatus("✅ Wallet connected");
+      setStatus("✅ Wallet connected!");
       await refresh(addr);
     } catch {
-      setStatus("❌ Wallet connection failed");
+      setStatus("❌ Connection failed. Is MetaMask installed?");
+    } finally {
+      setLoading(false);
     }
   }
 
-  /* 🔄 refresh on-chain data */
   async function refresh(address) {
     try {
       const bal = await getBalance(address);
       const rem = await getRemainingAllowance(address);
       const allowed = await canClaim(address);
 
-      setBalance(bal);
-      setRemaining(rem);
+      const balFormatted = (Number(bal) / 1e18).toFixed(2);
+      const remFormatted = (Number(rem) / 1e18).toFixed(0);
+
+      setBalance(balFormatted);
+      setRemaining(remFormatted);
       setCanRequest(allowed);
 
       if (!allowed) {
         const last = await window.__EVAL__.getLastClaimAt(address);
         const now = Math.floor(Date.now() / 1000);
-        setCooldown(Math.max(0, COOLDOWN_SECONDS - (now - Number(last))));
+        const remaining = Math.max(0, COOLDOWN_SECONDS - (now - Number(last)));
+        setCooldown(remaining);
       } else {
         setCooldown(0);
       }
 
       await estimateGas();
     } catch {
-      setStatus("⚠️ Switch MetaMask to Sepolia");
+      setStatus("⚠️ Please switch MetaMask to Sepolia network");
     }
   }
 
-  /* ⛽ gas estimate (safe) */
   async function estimateGas() {
     try {
       const gasPrice = await window.ethereum.request({
         method: "eth_gasPrice",
       });
-
-      // avg requestTokens gas ~100k
-      const estimatedEth =
-        (100_000 * Number(gasPrice)) / 1e18;
-
+      const estimatedEth = (100_000 * Number(gasPrice)) / 1e18;
       setGasCost(estimatedEth.toFixed(6));
     } catch {
       setGasCost(null);
     }
   }
 
-  /* 💧 claim tokens */
   async function claim() {
     try {
       setLoading(true);
-      setStatus("⏳ Requesting tokens...");
+      setStatus("⏳ Confirm transaction in MetaMask...");
       await requestTokens();
-      setStatus("✅ Tokens claimed!");
+      setStatus("🎉 Tokens claimed successfully!");
       await refresh(wallet);
-    } catch {
-      setStatus("⏱️ Cooldown active. Try later.");
+    } catch (err) {
+      if (err.message?.includes("Cooldown")) {
+        setStatus("⏱️ Cooldown active. Please wait 24 hours.");
+      } else if (err.message?.includes("limit")) {
+        setStatus("🚫 Lifetime claim limit reached.");
+      } else {
+        setStatus("❌ Transaction failed. Try again.");
+      }
     } finally {
       setLoading(false);
     }
   }
 
+  function formatCooldown(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${mins}m`;
+  }
+
   return (
     <div className="container">
       <div className="card">
-        <h1>ERC20 Token Faucet</h1>
-        <p className="subtitle">Secure • Rate-Limited • Sepolia Testnet</p>
+        <div className="logo-container">
+          <div className="token-icon">💧</div>
+        </div>
+
+        <h1>ERC-20 Token Faucet</h1>
+        <p className="subtitle">Claim Free Testnet Tokens</p>
+
+        <div className="network-badge">Sepolia Testnet</div>
 
         {!wallet ? (
-          <button className="primary" onClick={connect}>
-            🔐 Connect Wallet
+          <button className="primary" onClick={connect} disabled={loading}>
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                Connecting...
+              </>
+            ) : (
+              <>🔐 Connect Wallet</>
+            )}
           </button>
         ) : (
           <>
             <div className="info">
               <div>
-                <span>Wallet</span>
+                <span>💳 Wallet</span>
                 <strong
                   onClick={() => navigator.clipboard.writeText(wallet)}
                   style={{ cursor: "pointer" }}
+                  title="Click to copy"
                 >
-                  {wallet.slice(0, 6)}…{wallet.slice(-4)} 📋
+                  {wallet.slice(0, 6)}...{wallet.slice(-4)}
                 </strong>
               </div>
 
               <div>
-                <span>Balance</span>
-                <strong>{balance}</strong>
+                <span>💰 Balance</span>
+                <strong>{balance} FTK</strong>
               </div>
 
               <div>
-                <span>Remaining</span>
-                <strong>{remaining}</strong>
+                <span>🎯 Remaining</span>
+                <strong>{remaining} FTK</strong>
               </div>
             </div>
 
             {gasCost && (
               <div className="gas">
-                ⛽ Estimated cost: <strong>{gasCost} ETH</strong>
+                ⛽ Est. Gas: <strong>{gasCost} ETH</strong>
               </div>
             )}
 
@@ -150,16 +173,21 @@ function App() {
               onClick={claim}
               disabled={!canRequest || loading}
             >
-              {loading
-                ? "⏳ Processing..."
-                : canRequest
-                ? "💧 Request Tokens"
-                : "⛔ Cooldown Active"}
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  Processing...
+                </>
+              ) : canRequest ? (
+                <>💧 Claim 100 FTK</>
+              ) : (
+                <>⏱️ Cooldown Active</>
+              )}
             </button>
 
             {!canRequest && cooldown > 0 && (
-              <p className="status">
-                ⏱️ Next claim in {Math.ceil(cooldown / 60)} minutes
+              <p className="status cooldown">
+                ⏱️ Next claim in {formatCooldown(cooldown)}
               </p>
             )}
           </>
@@ -168,7 +196,7 @@ function App() {
         {status && <p className="status">{status}</p>}
 
         <div className="footer">
-          DevTools → Console → <code>window.__EVAL__</code>
+          Open DevTools Console → <code>window.__EVAL__</code>
         </div>
       </div>
     </div>

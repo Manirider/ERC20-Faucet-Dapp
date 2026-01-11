@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_TOKEN_ADDRESS=${VITE_TOKEN_ADDRESS}
+        - VITE_FAUCET_ADDRESS=${VITE_FAUCET_ADDRESS}
+        - VITE_RPC_URL=${VITE_RPC_URL}
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_TOKEN_ADDRESS=${VITE_TOKEN_ADDRESS}
+      - VITE_FAUCET_ADDRESS=${VITE_FAUCET_ADDRESS}
+      - VITE_RPC_URL=${VITE_RPC_URL}
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
