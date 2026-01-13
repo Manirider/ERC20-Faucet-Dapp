@@ -4,13 +4,13 @@ React frontend for the ERC-20 Token Faucet DApp. Connects to MetaMask and allows
 
 ## Quick Start
 
-```bash
+
 # Install dependencies
 npm install
 
 # Start development server
 npm run dev
-```
+
 
 Opens at `http://localhost:5173`
 
@@ -18,11 +18,11 @@ Opens at `http://localhost:5173`
 
 Create a `.env` file in this directory:
 
-```env
+
 VITE_RPC_URL=https://sepolia.infura.io/v3/your-key
 VITE_TOKEN_ADDRESS=0x...
 VITE_FAUCET_ADDRESS=0x...
-```
+
 
 These get injected at build time by Vite.
 
@@ -37,7 +37,7 @@ These get injected at build time by Vite.
 
 ## Project Structure
 
-```
+
 src/
 ├── App.jsx           # Main component - wallet connection, claiming
 ├── App.css           # Styles
@@ -45,7 +45,7 @@ src/
 └── utils/
     ├── contracts.js  # Contract interaction functions
     └── eval.js       # window.__EVAL__ testing interface
-```
+
 
 ## How It Works
 
@@ -73,7 +73,6 @@ If the user has claimed recently, a countdown timer shows time remaining until t
 
 The `contracts.js` file exports these functions:
 
-```javascript
 // Connect wallet, returns address
 connectWallet()
 
@@ -88,13 +87,11 @@ canClaim(address)
 
 // Get remaining lifetime allowance (in wei)
 getRemainingAllowance(address)
-```
 
 ## Testing Interface
 
 For automated testing and evaluation, the app exposes `window.__EVAL__` in the browser console:
 
-```javascript
 await window.__EVAL__.connectWallet()
 await window.__EVAL__.requestTokens()
 await window.__EVAL__.getBalance("0x...")
@@ -102,7 +99,6 @@ await window.__EVAL__.canClaim("0x...")
 await window.__EVAL__.getRemainingAllowance("0x...")
 await window.__EVAL__.getLastClaimAt("0x...")
 await window.__EVAL__.getContractAddresses()
-```
 
 This is useful for browser automation and evaluation scripts.
 
@@ -110,16 +106,15 @@ This is useful for browser automation and evaluation scripts.
 
 The Dockerfile builds a production image:
 
-```bash
+
 docker build -t faucet-frontend .
 docker run -p 3000:3000 faucet-frontend
-```
 
 Or use docker-compose from the root directory:
 
-```bash
+
 docker compose up --build
-```
+
 
 The Docker build:
 1. Installs dependencies
@@ -149,6 +144,7 @@ The Docker build:
 
 **Build fails in Docker**
 - Pass environment variables as build args:
-  ```bash
+
+
   docker build --build-arg VITE_TOKEN_ADDRESS=0x... .
-  ```
+  

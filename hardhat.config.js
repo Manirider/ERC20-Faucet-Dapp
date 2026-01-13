@@ -18,6 +18,6 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY, // ✅ V2 format
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
 };
