@@ -1,0 +1,8 @@
+Repository: ERC20-Faucet-Dapp
+Description: A secure ERC20 token faucet DApp with cooldown limits, Sepolia deployment, and a modern React + Vite frontend.
+Topics: portfolio-project
+
+GitHub Settings Updates:
+1. Go to https://github.com/Manirider/ERC20-Faucet-Dapp/settings
+2. Update the Description field to: A secure ERC20 token faucet DApp with cooldown limits, Sepolia deployment, and a modern React + Vite frontend.
+3. Add the following tags under Topics: portfolio-project
